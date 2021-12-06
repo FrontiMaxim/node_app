@@ -2,6 +2,8 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const Article = require('./db').Article;
+const read = require('node-readability');
+const url = 'http://www.manning.com/cantelon2/';
 
 const articles = [{ title: 'Example'}];
 
@@ -22,9 +24,18 @@ app.get('/articles', (req, res, next) => {
 });
 
 app.post('/articles', (req, res, next) => {
-    const article = { title : req.body.title }; 
-    articles.push(article ); 
-    res.send(article);
+    const url = req.body.url;
+
+    read(url, (err, result) => {
+        if (err || !result) res.status(500).send('Error downloading article');
+        Article.create(
+            { title: result.title, content: result.content },
+            (err, article) => {
+                if (err) return next(err);
+                res.send('OK');
+            }
+        );
+    });
 });
 
 app.get('/articles/:id', (req, res, next) => {
